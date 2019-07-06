@@ -4,10 +4,12 @@ const numberOfUsers = 12;
 const apiUrl = `https://randomuser.me/api/?results=${numberOfUsers}`;
 
 const search = (function() {
+  // TODO: Implement search feature.
+
   const searchContainerDiv = () => {
     return `<form action="#" method="get">
               <input type="search" id="search-input" class="search-input" placeholder="Search...">
-              <input type="submit" value="&#x1F50D;" id="serach-submit" class="search-submit">
+              <input type="submit" value="&#x1F50D;" id="search-submit" class="search-submit">
           </form>`;
   };
 
@@ -24,14 +26,40 @@ const search = (function() {
 })();
 
 const employeeModal = (function() {
-  const getEmployeeInfo = employeeDiv => {
-    const employeeId = parseInt(employeeDiv.dataset.id);
-    return employeeArray[employeeId];
+  let employeeLastName = "";
+
+  const getEmployeeLastName = employeeDiv => {
+    return employeeDiv
+      .querySelector("#name")
+      .textContent.split(" ")
+      .slice(1)
+      .join();
+  };
+
+  const getEmployeeInfo = employeeName => {
+    return R.prop(employeeName, employeeArray);
+  };
+
+  const getNeighboringEmployee = (employeeName, stepFunction) => {
+    const employeeNames = R.keys(employeeArray);
+
+    return R.pipe(
+      R.findIndex(R.equals(employeeName)),
+      stepFunction,
+      index => employeeNames[index],
+      lastName => (employeeLastName = lastName),
+      getEmployeeInfo
+    )(employeeNames);
   };
 
   const createModalElement = employee => {
-    const modalDiv = document.createElement("div");
-    modalDiv.classList.add("modal-container");
+    // TODO: Make this FP
+    let modalDiv = document.querySelector(".modal-container");
+
+    if (!modalDiv) {
+      modalDiv = document.createElement("div");
+      modalDiv.classList.add("modal-container");
+    }
 
     modalDiv.innerHTML = `<div class="modal">
                   <button type="button" id="modal-close-btn" class="modal-close-btn"><strong>X</strong></button>
@@ -55,25 +83,66 @@ const employeeModal = (function() {
     return modalDiv;
   };
 
-  const renderModalElement = markup => {
-    document.body.appendChild(markup);
+  const renderModalElement = modalElement => {
+    document.body.appendChild(modalElement);
 
-    return markup;
+    return modalElement;
   };
 
-  const addModalCloseEventListener = () => {
+  const addModalCloseEventListener = modal => {
     const closeBtn = document.getElementById("modal-close-btn");
-    closeBtn.addEventListener("click", e => {
-      e.target.closest(".modal-container").remove();
+    closeBtn.addEventListener("click", () => {
+      modal.remove();
     });
+
+    return modal;
   };
+
+  const addModalPrevEventListener = modal => {
+    const prevBtn = document.getElementById("modal-prev");
+    prevBtn.addEventListener("click", () => {
+      const getPreviousEmployee = R.ifElse(
+        R.equals(R.length(R.keys(employeeArray))),
+        () => 0,
+        index => R.subtract(index, 1)
+      );
+
+      createModal(
+        getNeighboringEmployee(employeeLastName, getPreviousEmployee)
+      );
+    });
+
+    return modal;
+  };
+
+  const addModalNextEventListener = modal => {
+    const nextBtn = document.getElementById("modal-next");
+    const getNextEmployee = R.ifElse(
+      R.equals(R.length(R.keys(employeeArray))),
+      () => 0,
+      R.add(1)
+    );
+
+    nextBtn.addEventListener("click", () => {
+      createModal(getNeighboringEmployee(employeeLastName, getNextEmployee));
+    });
+
+    return modal;
+  };
+
+  const createModal = R.pipe(
+    createModalElement,
+    renderModalElement,
+    addModalCloseEventListener,
+    addModalPrevEventListener,
+    addModalNextEventListener
+  );
 
   const openModal = R.pipe(
     e => e.target.closest(".card"),
+    lastName => (employeeLastName = getEmployeeLastName(lastName)),
     getEmployeeInfo,
-    createModalElement,
-    renderModalElement,
-    addModalCloseEventListener
+    createModal
   );
 
   return {
@@ -82,10 +151,9 @@ const employeeModal = (function() {
 })();
 
 const employees = (function() {
-  const createEmployeeElement = (employee, index) => {
+  const createEmployeeElement = employee => {
     const employeeCardDiv = document.createElement("div");
     employeeCardDiv.classList.add("card");
-    employeeCardDiv.dataset.id = index;
 
     employeeCardDiv.innerHTML = `
             <div class="card-img-container">
@@ -112,19 +180,42 @@ const employees = (function() {
     return galleryElement;
   };
 
-  const renderEmployeesFromApi = R.pipe(
-    fetch(apiUrl)
-      .then(response => response.json())
-      .then(response => (employeeArray = response.results))
-      .then(R.addIndex(R.map())(createEmployeeElement))
-      .then(R.map(addEmployeeEventListener))
-      .then(R.map(renderEmployeeElement))
+  const renderEmployees = R.pipe(
+    R.map(createEmployeeElement),
+    R.map(addEmployeeEventListener),
+    R.map(renderEmployeeElement)
   );
 
   return {
-    renderEmployeesFromApi
+    renderEmployees
   };
 })();
 
+const getData = (function() {
+  /**
+   * (Object a → String) → {k: {k: v}}
+   *
+   * @param {Object} responseJson
+   * @returns {*}
+   */
+  const createEmployeeArr = responseJson => {
+    return R.pipe(
+      R.prop("results"),
+      R.indexBy(R.path(["name", "last"]))
+    )(responseJson);
+  };
+
+  const fetchEmployees = R.pipe(
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(jsonData => (employeeArray = createEmployeeArr(jsonData)))
+      .then(employees.renderEmployees)
+  );
+
+  return {
+    fetchEmployees
+  };
+})();
+
+getData.fetchEmployees();
 search.render();
-employees.renderEmployeesFromApi();
