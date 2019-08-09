@@ -1,29 +1,7 @@
 // Globals
 let employeeArray = [];
 const numberOfUsers = 12;
-const apiUrl = `https://randomuser.me/api/?results=${numberOfUsers}`;
-
-const search = (function() {
-  // TODO: Implement search feature.
-
-  const searchContainerDiv = () => {
-    return `<form action="#" method="get">
-              <input type="search" id="search-input" class="search-input" placeholder="Search...">
-              <input type="submit" value="&#x1F50D;" id="search-submit" class="search-submit">
-          </form>`;
-  };
-
-  const renderSearchContainerDiv = markup => {
-    const resultsElement = document.querySelector(".search-container");
-    resultsElement.innerHTML = markup;
-  };
-
-  const render = renderSearchContainerDiv(searchContainerDiv());
-
-  return {
-    render
-  };
-})();
+const apiUrl = `https://randomuser.me/api/?results=${numberOfUsers}&nat=us`;
 
 const employeeModal = (function() {
   let employeeLastName = "";
@@ -151,6 +129,11 @@ const employeeModal = (function() {
 })();
 
 const employees = (function() {
+  const clearContainer = (message = "") => {
+    const galleryElement = document.getElementById("gallery");
+    galleryElement.innerHTML = message;
+  };
+
   const createEmployeeElement = employee => {
     const employeeCardDiv = document.createElement("div");
     employeeCardDiv.classList.add("card");
@@ -180,14 +163,83 @@ const employees = (function() {
     return galleryElement;
   };
 
-  const renderEmployees = R.pipe(
-    R.map(createEmployeeElement),
-    R.map(addEmployeeEventListener),
-    R.map(renderEmployeeElement)
-  );
+  const renderEmployees = employees => {
+    clearContainer();
+
+    if (R.isEmpty(employees)) {
+      return clearContainer(
+        "<p>No employees found. Please use full first or last name.</p>"
+      );
+    }
+
+    const render = R.pipe(
+      R.map(createEmployeeElement),
+      R.map(addEmployeeEventListener),
+      R.map(renderEmployeeElement)
+    );
+
+    return render(employees);
+  };
 
   return {
     renderEmployees
+  };
+})();
+
+const search = (function() {
+  const searchContainerDiv = () => {
+    return `<form action="#" method="get">
+              <input type="search" id="search-input" class="search-input" placeholder="Search...">
+              <input type="submit" value="&#x1F50D;" id="search-submit" class="search-submit">
+          </form>`;
+  };
+
+  const renderSearchContainerDiv = markup => {
+    const resultsElement = document.querySelector(".search-container");
+    resultsElement.innerHTML = markup;
+
+    return resultsElement;
+  };
+
+  const addSearchEventListener = () => {
+    const searchBtn = document.getElementById("search-submit");
+    searchBtn.addEventListener("click", filterAndRerenderEmployees);
+  };
+
+  const getFilterWords = () => {
+    return document.getElementById("search-input").value;
+  };
+
+  const filterEmployeeList = employeeText => {
+    if (R.isEmpty(employeeText)) {
+      return employeeArray;
+    }
+
+    const hasFirstOrLastName = (val, key) => {
+      return (
+        R.view(R.lensPath(["name", "first"]), val) ===
+          employeeText.toLowerCase() ||
+        R.view(R.lensPath(["name", "last"]), val) === employeeText.toLowerCase()
+      );
+    };
+
+    return R.pickBy(hasFirstOrLastName, employeeArray);
+  };
+
+  const filterAndRerenderEmployees = R.pipe(
+    getFilterWords,
+    filterEmployeeList,
+    employees.renderEmployees
+  );
+
+  const render = R.pipe(
+    searchContainerDiv,
+    renderSearchContainerDiv,
+    addSearchEventListener
+  );
+
+  return {
+    render
   };
 })();
 
@@ -205,12 +257,12 @@ const getData = (function() {
     )(responseJson);
   };
 
-  const fetchEmployees = R.pipe(
-    fetch(apiUrl)
+  const fetchEmployees = () => {
+    return fetch(apiUrl)
       .then(response => response.json())
       .then(jsonData => (employeeArray = createEmployeeArr(jsonData)))
-      .then(employees.renderEmployees)
-  );
+      .then(employees.renderEmployees);
+  };
 
   return {
     fetchEmployees
