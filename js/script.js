@@ -167,7 +167,7 @@ const employees = (function() {
 
     if (R.isEmpty(employees)) {
       return clearContainer(
-        "<p>No employees found. Please use full first or last name.</p>"
+        "<p>No employees found. Please try again.</p>"
       );
     }
 
@@ -214,15 +214,19 @@ const search = (function() {
       return employeeArray;
     }
 
-    const hasFirstOrLastName = (val, key) => {
+    const hasFirstOrLastName = (key, val) => {
+      const firstName = R.view(R.lensPath(["name", "first"]), val);
+      const lastName = R.view(R.lensPath(["name", "last"]), val);
+      const keyLower = key.toLowerCase();
+
       return (
-        R.view(R.lensPath(["name", "first"]), val) ===
-          employeeText.toLowerCase() ||
-        R.view(R.lensPath(["name", "last"]), val) === employeeText.toLowerCase()
+        firstName.toLowerCase().includes(keyLower) ||
+        lastName.toLowerCase().includes(keyLower)
       );
     };
 
-    return R.pickBy(hasFirstOrLastName, employeeArray);
+    const checkForEmployee = R.curry(hasFirstOrLastName)(employeeText);
+    return R.filter(checkForEmployee, employeeArray);
   };
 
   const filterAndRerenderEmployees = R.pipe(
