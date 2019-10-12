@@ -31,7 +31,6 @@ const employeeModal = (function() {
   };
 
   const createModalElement = employee => {
-    // TODO: Make this FP
     let modalDiv = document.querySelector(".modal-container");
 
     if (!modalDiv) {
