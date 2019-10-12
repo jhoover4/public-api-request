@@ -38,17 +38,31 @@ const employeeModal = (function() {
       modalDiv.classList.add("modal-container");
     }
 
+    const formatEmployeeDob = dob => {
+      return dob.match(/\d{4}-\d{2}-\d{2}/);
+    };
+
     modalDiv.innerHTML = `<div class="modal">
                   <button type="button" id="modal-close-btn" class="modal-close-btn"><strong>X</strong></button>
                   <div class="modal-info-container">
-                      <img class="modal-img" src="${employee.picture.large}" alt="profile picture">
-                      <h3 id="name" class="modal-name cap">${employee.name.first} ${employee.name.last}</h3>
+                      <img class="modal-img" src="${
+                        employee.picture.large
+                      }" alt="profile picture">
+                      <h3 id="name" class="modal-name cap">${
+                        employee.name.first
+                      } ${employee.name.last}</h3>
                       <p class="modal-text">${employee.email}</p>
                       <p class="modal-text cap">${employee.location.city}</p>
                       <hr>
                       <p class="modal-text">${employee.phone}</p>
-                      <p class="modal-text">${employee.location.street}, ${employee.location.city}, ${employee.location.state} ${employee.location.postcode}</p>
-                      <p class="modal-text">Birthday: ${employee.dob.date}</p>
+                      <p class="modal-text">${
+                        employee.location.street.number
+                      } ${employee.location.street.name}, ${
+      employee.location.city
+    }, ${employee.location.state} ${employee.location.postcode}</p>
+                      <p class="modal-text">Birthday: ${formatEmployeeDob(
+                        employee.dob.date
+                      )}</p>
                   </div>
               </div>
 
@@ -79,8 +93,8 @@ const employeeModal = (function() {
     const prevBtn = document.getElementById("modal-prev");
     prevBtn.addEventListener("click", () => {
       const getPreviousEmployee = R.ifElse(
-        R.equals(R.length(R.keys(employeeArray))),
-        () => 0,
+        index => index <= 0,
+        () => R.length(R.keys(employeeArray)) - 1,
         index => R.subtract(index, 1)
       );
 
@@ -95,7 +109,7 @@ const employeeModal = (function() {
   const addModalNextEventListener = modal => {
     const nextBtn = document.getElementById("modal-next");
     const getNextEmployee = R.ifElse(
-      R.equals(R.length(R.keys(employeeArray))),
+      R.equals(R.length(R.keys(employeeArray)) - 1),
       () => 0,
       R.add(1)
     );
@@ -166,9 +180,7 @@ const employees = (function() {
     clearContainer();
 
     if (R.isEmpty(employees)) {
-      return clearContainer(
-        "<p>No employees found. Please try again.</p>"
-      );
+      return clearContainer("<p>No employees found. Please try again.</p>");
     }
 
     const render = R.pipe(
