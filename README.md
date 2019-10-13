@@ -8,4 +8,4 @@ For this project, you'll build an app for a fictional company called Awesome Sta
 
 ## Style Changes
 
-Added box shadows to employee cards.
+Added box shadows to individual employee cards.
