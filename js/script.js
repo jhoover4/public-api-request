@@ -214,7 +214,10 @@ const search = (function() {
 
   const addSearchEventListener = () => {
     const searchBtn = document.getElementById("search-submit");
-    searchBtn.addEventListener("click", filterAndRerenderEmployees);
+    searchBtn.addEventListener("click", e => {
+      e.preventDefault;
+      filterAndRerenderEmployees();
+    });
   };
 
   const getFilterWords = () => {
